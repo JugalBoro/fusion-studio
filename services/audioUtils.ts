@@ -20,6 +20,12 @@ export async function decodeAudioData(
   sampleRate: number = 24000,
   numChannels: number = 1
 ): Promise<AudioBuffer> {
+  // Safety check for Int16 alignment
+  if (data.length % 2 !== 0) {
+    // If odd bytes, slice off the last byte to ensure alignment for Int16Array
+    data = data.slice(0, data.length - 1);
+  }
+
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);

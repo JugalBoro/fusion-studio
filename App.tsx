@@ -22,6 +22,7 @@ const App: React.FC = () => {
 
     // Placeholder result
     const tempId = Date.now().toString();
+    let processingAudioCtx: AudioContext | null = null;
     
     try {
       // 1. Generate Text
@@ -41,15 +42,15 @@ const App: React.FC = () => {
       setResults(prev => [newResult, ...prev]);
 
       // 2. Parallel Generation: Image & Audio
-      // We do this concurrently for speed
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // We create a temporary context just for decoding the response
+      processingAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       
       const [imageData, audioData] = await Promise.all([
         generateCreativeImage(textData.imagePrompt).catch(e => {
             console.error("Image failed", e);
             return undefined;
         }),
-        generateNarration(textData.body, audioCtx).catch(e => {
+        generateNarration(textData.body, processingAudioCtx).catch(e => {
             console.error("Audio failed", e);
             return undefined;
         })
@@ -73,6 +74,10 @@ const App: React.FC = () => {
       // Remove the failed result attempt
       setResults(prev => prev.filter(r => r.id !== tempId));
     } finally {
+      // CRITICAL: Close the context to free up hardware resources
+      if (processingAudioCtx) {
+        await processingAudioCtx.close();
+      }
       setIsProcessing(false);
       setLoadingMessage('');
     }

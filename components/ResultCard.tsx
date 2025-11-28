@@ -11,48 +11,44 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
-  // Initialize AudioContext lazily
+  // Cleanup on unmount or if result changes
   useEffect(() => {
-    if (!audioContextRef.current && result.audioData) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    
     return () => {
-      if (sourceNodeRef.current) {
-        sourceNodeRef.current.stop();
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      stopAndClose();
+    };
+  }, [result.id]);
+
+  const stopAndClose = () => {
+    if (sourceNodeRef.current) {
+      try { sourceNodeRef.current.stop(); } catch (e) {}
+      sourceNodeRef.current = null;
+    }
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
       }
-    };
-  }, [result.audioData]);
+      audioContextRef.current = null;
+    }
+    setIsPlaying(false);
+  };
 
   const togglePlayback = async () => {
-    if (!result.audioData || !audioContextRef.current) return;
+    if (!result.audioData) return;
 
     if (isPlaying) {
-      if (sourceNodeRef.current) {
-        sourceNodeRef.current.stop();
-        sourceNodeRef.current = null;
-      }
-      setIsPlaying(false);
+      stopAndClose();
     } else {
-      // Re-create context if closed
-      if (audioContextRef.current.state === 'closed') {
-         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      
-      // Resume if suspended (common browser policy)
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
+      // Lazy creation: Only create AudioContext when needed to avoid 6-context limit
+      const CtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new CtxClass();
+      audioContextRef.current = ctx;
 
-      const source = audioContextRef.current.createBufferSource();
+      const source = ctx.createBufferSource();
       source.buffer = result.audioData;
-      source.connect(audioContextRef.current.destination);
+      source.connect(ctx.destination);
       
       source.onended = () => {
-        setIsPlaying(false);
+        stopAndClose();
       };
 
       source.start(0);
