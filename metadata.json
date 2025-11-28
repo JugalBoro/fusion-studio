@@ -1,0 +1,5 @@
+{
+  "name": "Fusion Studio",
+  "description": "A multimodal AI workspace that transforms ideas into stories, visuals, and audio narration simultaneously using the latest Gemini models.",
+  "requestFramePermissions": []
+}
