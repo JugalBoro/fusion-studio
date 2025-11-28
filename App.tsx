@@ -94,9 +94,6 @@ const App: React.FC = () => {
               Fusion Studio
             </h1>
           </div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 font-semibold">
-            Powered by Gemini 2.5
-          </div>
         </div>
       </header>
 
